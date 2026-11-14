@@ -86,7 +86,11 @@ public class Main {
 
     private static Dado criarDado(String[] args) {
         if (args.length == 2 && args[0].equals("--semente")) {
-            return new DadoAleatorio(new Random(Long.parseLong(args[1])));
+            try {
+                return new DadoAleatorio(new Random(Long.parseLong(args[1])));
+            } catch (NumberFormatException e) {
+                System.out.println("Semente inválida (\"" + args[1] + "\"), o jogo vai usar uma aleatória.");
+            }
         }
         return new DadoAleatorio();
     }
