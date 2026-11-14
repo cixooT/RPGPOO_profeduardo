@@ -31,6 +31,15 @@ Você escolhe um herói (Guerreiro, Mago ou Arqueiro), desce 4 andares de uma ma
 
 Não tem nenhuma biblioteca externa, Maven ou Gradle. É só Java puro.
 
+### Baixando o projeto
+
+```sh
+git clone https://github.com/cixooT/RPGPOO_profeduardo.git
+cd RPGPOO_profeduardo
+```
+
+Ou clique em **Code → Download ZIP** aqui no GitHub e extraia a pasta.
+
 ### Jeito rápido (scripts prontos)
 
 **Windows** (Prompt de Comando ou PowerShell, na pasta do projeto):
@@ -45,7 +54,9 @@ executar.bat
 ./executar.sh
 ```
 
-Os dois scripts fazem a mesma coisa: apagam a pasta `out/`, compilam tudo de novo e iniciam o jogo. No Windows o script também roda `chcp 65001` pra os acentos aparecerem certinho no terminal.
+> No PowerShell, se aparecer "não é reconhecido como comando", use `.\executar.bat`.
+
+Os dois scripts fazem a mesma coisa: apagam a pasta `out/`, compilam tudo de novo e iniciam o jogo. Eles também forçam a saída em UTF-8 (e no Windows rodam `chcp 65001`) pra os acentos aparecerem certinho no terminal.
 
 ### Jeito manual
 
@@ -226,6 +237,7 @@ classDiagram
         +receberDano(int dano) int
         +defender()
         +encerrarDefesa()
+        +estaDefendendo() boolean
         #restaurarVida(int quantidade) int
     }
     class Heroi {
@@ -240,7 +252,12 @@ classDiagram
         +getDefesa() int
         +curar(int quantidade) int
         +gastarEnergia(int custo) boolean
+        +getEnergia() int
+        +getEnergiaMaxima() int
         +recuperarEnergia(int quantidade) int
+        +getHabilidades() List~Habilidade~
+        +getInventario() Inventario
+        +getEquipamentos() Equipamentos
         +equipar(Equipavel item) Optional~Equipavel~
     }
     class Guerreiro
@@ -320,6 +337,7 @@ classDiagram
         <<enumeration>>
         ARMA
         ARMADURA
+        +getDescricao() String
     }
     class ItemBase {
         <<abstract>>
@@ -342,12 +360,15 @@ classDiagram
         -List~Item~ itens
         +adicionar(Item item)
         +remover(Item item) boolean
+        +getItens() List~Item~
+        +estaVazio() boolean
         +getUsaveis() List~Usavel~
         +getEquipaveis() List~Equipavel~
     }
     class Equipamentos {
         -EnumMap slots
         +equipar(Equipavel item) Optional~Equipavel~
+        +getEquipado(TipoEquipamento tipo) Optional~Equipavel~
         +getBonusAtaque() int
         +getBonusDefesa() int
     }
@@ -440,7 +461,10 @@ classDiagram
         +statusHeroi(Heroi h) String
         +fichaDoHeroi(Heroi h) String
     }
-    class EntradaEncerradaException
+    class EntradaEncerradaException {
+        -long serialVersionUID$
+    }
+    RuntimeException <|-- EntradaEncerradaException
     InterfaceJogo <|.. ConsoleUI
     ConsoleUI ..> EntradaEncerradaException
 
@@ -533,7 +557,7 @@ Pontos importantes:
 - `lerLinha` é o único lugar que lê do `Scanner`. Se a entrada acabar (por exemplo, o jogador apertou Ctrl+Z / Ctrl+D), ele lança `EntradaEncerradaException` em vez de travar num laço infinito.
 
 #### `EntradaEncerradaException`
-Uma exceção simples (`RuntimeException`) que sinaliza "não tem mais entrada pra ler". O `Main` captura ela e encerra o jogo com uma mensagem amigável.
+Uma exceção simples (`RuntimeException`) que sinaliza "não tem mais entrada pra ler". O `Main` captura ela e encerra o jogo com uma mensagem amigável. O campo `serialVersionUID` está lá porque toda exceção em Java é serializável, e declarar esse número é a prática recomendada (sem ele, o compilador dá aviso).
 
 #### `FormatadorStatus`
 Só transforma dados em texto bonito. Não lê nada, não muda nada.
@@ -758,7 +782,7 @@ O `Jogo` não sabe como uma luta funciona, nem como o texto chega na tela, nem q
 ### `rpg.Main` — onde tudo se encontra
 
 O `Main` é o único lugar que conhece as classes **concretas**. Ele:
-1. Cria o `Dado` (com semente se vier `--semente N` nos argumentos).
+1. Cria o `Dado` (com semente se vier `--semente N` nos argumentos). Se a semente não for um número, o `catch` da `NumberFormatException` avisa o jogador e o jogo segue com sorteio normal, em vez de travar.
 2. Cria a `ConsoleUI`, o `FormatadorStatus` e a `CalculadoraDanoPadrao`.
 3. Monta a lista de ações de combate e a `Batalha`.
 4. Registra as três classes na `FabricaDeHerois`, com o kit inicial (2 Poções de Vida e 1 de Energia).
