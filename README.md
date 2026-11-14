@@ -4,8 +4,6 @@ Trabalho prático de **Paradigmas de Programação**: um RPG de turnos jogado no
 
 Você escolhe um herói (Guerreiro, Mago ou Arqueiro), desce 4 andares de uma masmorra enfrentando inimigos cada vez mais fortes, junta poções e equipamentos pelo caminho e, no último andar, encara o **Dragão Ancestral**.
 
-> O código-fonte não tem nenhum comentário de propósito. Toda a explicação está aqui no README, nas seções [Explicando o código](#explicando-o-código-pacote-por-pacote) e [SOLID no projeto](#solid-no-projeto).
-
 ---
 
 ## Sumário
@@ -200,7 +198,11 @@ A divisão em pacotes já segue uma ideia simples: **cada pacote cuida de um ass
 
 ## Diagrama de classes (UML)
 
-O diagrama abaixo é escrito em [Mermaid](https://mermaid.js.org/), que o GitHub desenha automaticamente. Legenda das setas:
+Os diagramas são escritos em [Mermaid](https://mermaid.js.org/), que o GitHub desenha automaticamente. Pra ficarem legíveis, eles estão divididos por assunto: primeiro uma visão geral de como as partes se conectam, depois um diagrama detalhado pra cada pacote, com atributos e métodos.
+
+> Dica: passando o mouse em cima de um diagrama aparecem botões pra dar zoom ou abrir em tela cheia.
+
+Legenda das setas:
 
 - `<|--` herança (extends)
 - `<|..` implementação de interface (implements)
@@ -208,10 +210,71 @@ O diagrama abaixo é escrito em [Mermaid](https://mermaid.js.org/), que o GitHub
 - `o--` agregação (guarda referência)
 - `..>` dependência (usa)
 
+Nos atributos e métodos: `+` público, `-` privado, `#` protegido, `*` abstrato e `$` estático.
+
+### Visão geral
+
+Como as peças principais se conectam. Repara que o `Jogo` e a `Batalha` dependem de interfaces (`InterfaceJogo`, `CalculadoraDeDano`, `AcaoDeCombate`, `Dado`), e só o `Main` conhece as classes concretas.
+
+```mermaid
+classDiagram
+    direction LR
+    class Main
+    class Jogo
+    class Batalha
+    class Masmorra
+    class FabricaDeHerois
+    class GeradorDeRecompensas
+    class Acampamento
+    class InterfaceJogo {
+        <<interface>>
+    }
+    class CalculadoraDeDano {
+        <<interface>>
+    }
+    class AcaoDeCombate {
+        <<interface>>
+    }
+    class Dado {
+        <<interface>>
+    }
+    class Heroi {
+        <<abstract>>
+    }
+    class Inimigo {
+        <<abstract>>
+    }
+    class Habilidade {
+        <<interface>>
+    }
+    class Item {
+        <<interface>>
+    }
+    Main ..> Jogo : monta tudo
+    Jogo o-- Batalha
+    Jogo o-- Masmorra
+    Jogo o-- FabricaDeHerois
+    Jogo o-- GeradorDeRecompensas
+    Jogo o-- Acampamento
+    Jogo o-- InterfaceJogo
+    Batalha o-- AcaoDeCombate
+    Batalha o-- CalculadoraDeDano
+    Batalha o-- InterfaceJogo
+    Batalha o-- Dado
+    Batalha ..> Heroi
+    Batalha ..> Inimigo
+    Masmorra ..> Inimigo
+    FabricaDeHerois ..> Heroi
+    GeradorDeRecompensas ..> Item
+    Heroi o-- Habilidade
+    Heroi *-- Item
+```
+
+### Personagens (`rpg.personagens`)
+
 ```mermaid
 classDiagram
     direction TB
-
     class Combatente {
         <<interface>>
         +getNome() String
@@ -251,27 +314,39 @@ classDiagram
         +getAtaque() int
         +getDefesa() int
         +curar(int quantidade) int
-        +gastarEnergia(int custo) boolean
         +getEnergia() int
         +getEnergiaMaxima() int
+        +gastarEnergia(int custo) boolean
         +recuperarEnergia(int quantidade) int
         +getHabilidades() List~Habilidade~
         +getInventario() Inventario
         +getEquipamentos() Equipamentos
         +equipar(Equipavel item) Optional~Equipavel~
     }
-    class Guerreiro
-    class Mago
-    class Arqueiro
+    class Guerreiro {
+        +getClasse() String
+    }
+    class Mago {
+        +getClasse() String
+    }
+    class Arqueiro {
+        +getClasse() String
+    }
     class Inimigo {
         <<abstract>>
         +getApresentacao() String
         +agir(Combatente alvo, CalculadoraDeDano calc, Dado dado)* String
         #golpear(Combatente alvo, int poder, CalculadoraDeDano calc, String acao) String
     }
-    class Goblin
-    class Esqueleto
-    class Orc
+    class Goblin {
+        +agir(...) String
+    }
+    class Esqueleto {
+        +agir(...) String
+    }
+    class Orc {
+        +agir(...) String
+    }
     class Chefe {
         <<abstract>>
         #getFalaDeEntrada()* String
@@ -282,8 +357,8 @@ classDiagram
         -boolean furioso
         +getAtaque() int
         +agir(...) String
+        #getFalaDeEntrada() String
     }
-
     Combatente <|.. Personagem
     Curavel <|.. Heroi
     Personagem <|-- Heroi
@@ -296,7 +371,16 @@ classDiagram
     Inimigo <|-- Orc
     Inimigo <|-- Chefe
     Chefe <|-- DragaoAncestral
+```
 
+### Habilidades (`rpg.habilidades`)
+
+```mermaid
+classDiagram
+    direction LR
+    class Heroi {
+        <<abstract>>
+    }
     class Habilidade {
         <<interface>>
         +getNome() String
@@ -307,17 +391,25 @@ classDiagram
     class GolpeBrutal
     class Investida
     class BolaDeFogo
-    class CuraArcana
+    class CuraArcana {
+        -int CURA_BASE$
+    }
     class TiroPreciso
     class DisparoDuplo
+    Heroi o-- "2" Habilidade
     Habilidade <|.. GolpeBrutal
     Habilidade <|.. Investida
     Habilidade <|.. BolaDeFogo
     Habilidade <|.. CuraArcana
     Habilidade <|.. TiroPreciso
     Habilidade <|.. DisparoDuplo
-    Heroi o-- "2" Habilidade
+```
 
+### Itens (`rpg.itens`)
+
+```mermaid
+classDiagram
+    direction TB
     class Item {
         <<interface>>
         +getNome() String
@@ -372,6 +464,9 @@ classDiagram
         +getBonusAtaque() int
         +getBonusDefesa() int
     }
+    class Heroi {
+        <<abstract>>
+    }
     Item <|-- Usavel
     Item <|-- Equipavel
     Item <|.. ItemBase
@@ -388,19 +483,27 @@ classDiagram
     Heroi *-- Equipamentos
     Inventario o-- Item
     Equipamentos o-- Equipavel
+```
 
-    class CalculadoraDeDano {
-        <<interface>>
-        +calcular(int poder, int defesa) Dano
-    }
-    class CalculadoraDanoPadrao {
+### Combate (`rpg.combate` e `rpg.combate.acoes`)
+
+```mermaid
+classDiagram
+    direction TB
+    class Batalha {
+        -int ENERGIA_POR_RODADA$
+        -InterfaceJogo ui
+        -CalculadoraDeDano calculadora
         -Dado dado
+        -List~AcaoDeCombate~ acoes
+        -FormatadorStatus formatador
+        +iniciar(Heroi heroi, Inimigo inimigo) ResultadoBatalha
+        -turnoDoHeroi(ContextoBatalha contexto)
     }
-    class Dano {
-        <<record>>
-        +int valor
-        +boolean critico
-        +marcador() String
+    class ResultadoBatalha {
+        <<enumeration>>
+        VITORIA
+        DERROTA
     }
     class ContextoBatalha {
         <<record>>
@@ -408,15 +511,6 @@ classDiagram
         +Inimigo inimigo
         +InterfaceJogo ui
         +CalculadoraDeDano calculadora
-    }
-    class ResultadoBatalha {
-        <<enumeration>>
-        VITORIA
-        DERROTA
-    }
-    class Batalha {
-        -List~AcaoDeCombate~ acoes
-        +iniciar(Heroi heroi, Inimigo inimigo) ResultadoBatalha
     }
     class AcaoDeCombate {
         <<interface>>
@@ -427,23 +521,42 @@ classDiagram
     class AcaoAtacar
     class AcaoHabilidade
     class AcaoUsarItem
-    class AcaoDefender
-    CalculadoraDeDano <|.. CalculadoraDanoPadrao
-    CalculadoraDeDano ..> Dano
+    class AcaoDefender {
+        -int ENERGIA_RECUPERADA$
+    }
+    class CalculadoraDeDano {
+        <<interface>>
+        +calcular(int poder, int defesa) Dano
+    }
+    class CalculadoraDanoPadrao {
+        -int CHANCE_CRITICO$
+        -Dado dado
+        +calcular(int poder, int defesa) Dano
+    }
+    class Dano {
+        <<record>>
+        +int valor
+        +boolean critico
+        +marcador() String
+    }
+    Batalha o-- AcaoDeCombate
+    Batalha o-- CalculadoraDeDano
+    Batalha ..> ContextoBatalha
+    Batalha ..> ResultadoBatalha
     AcaoDeCombate <|.. AcaoAtacar
     AcaoDeCombate <|.. AcaoHabilidade
     AcaoDeCombate <|.. AcaoUsarItem
     AcaoDeCombate <|.. AcaoDefender
     AcaoDeCombate ..> ContextoBatalha
-    Batalha o-- AcaoDeCombate
-    Batalha o-- CalculadoraDeDano
-    Batalha o-- InterfaceJogo
-    Batalha o-- Dado
-    Batalha o-- FormatadorStatus
-    Batalha ..> ResultadoBatalha
-    Batalha ..> Heroi
-    Batalha ..> Inimigo
+    CalculadoraDeDano <|.. CalculadoraDanoPadrao
+    CalculadoraDeDano ..> Dano
+```
 
+### Interface com o jogador e aleatoriedade (`rpg.ui` e `rpg.util`)
+
+```mermaid
+classDiagram
+    direction TB
     class InterfaceJogo {
         <<interface>>
         +mostrar(String mensagem)
@@ -455,19 +568,20 @@ classDiagram
     class ConsoleUI {
         -Scanner scanner
         -PrintStream saida
+        -converterNumero(String texto) Integer
+        -lerLinha() String
     }
     class FormatadorStatus {
+        -int TAMANHO_BARRA$
         +statusCombatente(Combatente c) String
         +statusHeroi(Heroi h) String
         +fichaDoHeroi(Heroi h) String
+        -barra(int atual, int maximo) String
     }
     class EntradaEncerradaException {
         -long serialVersionUID$
     }
-    RuntimeException <|-- EntradaEncerradaException
-    InterfaceJogo <|.. ConsoleUI
-    ConsoleUI ..> EntradaEncerradaException
-
+    class RuntimeException
     class Dado {
         <<interface>>
         +rolar(int minimo, int maximo) int
@@ -475,45 +589,68 @@ classDiagram
     }
     class DadoAleatorio {
         -Random random
+        +rolar(int minimo, int maximo) int
     }
+    InterfaceJogo <|.. ConsoleUI
+    ConsoleUI ..> EntradaEncerradaException
+    RuntimeException <|-- EntradaEncerradaException
     Dado <|.. DadoAleatorio
-    CalculadoraDanoPadrao o-- Dado
+```
 
-    class Jogo {
-        +executar()
+### Fluxo do jogo (`rpg.jogo` e `rpg.Main`)
+
+```mermaid
+classDiagram
+    direction TB
+    class Main {
+        +main(String[] args)$
+        -kitInicial()$ List~Item~
+        -criarDado(String[] args)$ Dado
     }
-    class Masmorra {
-        -List~Supplier~ andares
-        +adicionarAndar(Supplier~Inimigo~ criador) Masmorra
-        +gerarEncontros() List~Inimigo~
+    class Jogo {
+        -InterfaceJogo ui
+        -FabricaDeHerois fabricaDeHerois
+        -Masmorra masmorra
+        -Batalha batalha
+        -Acampamento acampamento
+        -GeradorDeRecompensas recompensas
+        +executar()
+        -criarHeroi() Heroi
+        -recompensar(Heroi heroi)
+        -descansar(Heroi heroi)
     }
     class FabricaDeHerois {
+        -List~OpcaoDeHeroi~ opcoes
+        -Supplier kitInicial
         +registrar(String classe, String descricao, Function criador) FabricaDeHerois
         +getDescricoes() List~String~
         +criar(int indice, String nome) Heroi
     }
+    class Masmorra {
+        -List~Supplier~ andares
+        +adicionarAndar(Supplier criador) Masmorra
+        +gerarEncontros() List~Inimigo~
+    }
     class GeradorDeRecompensas {
-        +registrar(Supplier~Item~ criador) GeradorDeRecompensas
+        -List~Supplier~ possiveisItens
+        -Dado dado
+        +registrar(Supplier criador) GeradorDeRecompensas
         +sortear() Item
     }
     class Acampamento {
+        -InterfaceJogo ui
+        -FormatadorStatus formatador
         +visitar(Heroi heroi)
+        -usarItem(Heroi heroi)
+        -equiparItem(Heroi heroi)
     }
-    class Main {
-        +main(String[] args)$
-    }
-    Jogo o-- InterfaceJogo
+    class Batalha
+    Main ..> Jogo : cria e injeta
     Jogo o-- FabricaDeHerois
     Jogo o-- Masmorra
-    Jogo o-- Batalha
-    Jogo o-- Acampamento
     Jogo o-- GeradorDeRecompensas
-    Acampamento o-- InterfaceJogo
-    Acampamento o-- FormatadorStatus
-    GeradorDeRecompensas o-- Dado
-    FabricaDeHerois ..> Heroi
-    Masmorra ..> Inimigo
-    Main ..> Jogo : monta tudo
+    Jogo o-- Acampamento
+    Jogo o-- Batalha
 ```
 
 ---
